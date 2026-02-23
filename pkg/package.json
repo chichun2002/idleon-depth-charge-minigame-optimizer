@@ -1,0 +1,15 @@
+{
+  "name": "idleon-depth-charge-minigame-optimizer",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "idleon_depth_charge_minigame_optimizer_bg.wasm",
+    "idleon_depth_charge_minigame_optimizer.js",
+    "idleon_depth_charge_minigame_optimizer.d.ts"
+  ],
+  "main": "idleon_depth_charge_minigame_optimizer.js",
+  "types": "idleon_depth_charge_minigame_optimizer.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
