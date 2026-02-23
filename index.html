@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Depth Charge Optimizer</title>
+  <style>
+    body { font-family: monospace; padding: 2rem; }
+    table { border-collapse: collapse; margin-top: 1rem; }
+    td, th { padding: 0.3rem 1rem; text-align: right; }
+    .best { font-weight: bold; color: green; }
+    #status { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h2>Depth Charge Sim</h2>
+  <label>Simulations per flip: <input id="sims" type="number" value="100000"></label>
+  <button id="run">Run</button>
+  <div id="status"></div>
+  <table>
+    <thead><tr><th>Flips</th><th>Win Rate</th></tr></thead>
+    <tbody id="results"></tbody>
+  </table>
+
+  <script type="module">
+    import init, { run_sim } from './pkg/idleon_depth_charge_minigame_optimizer.js';
+
+    await init();
+
+    document.getElementById('run').addEventListener('click', () => {
+      const numSims = parseInt(document.getElementById('sims').value);
+      const status = document.getElementById('status');
+      const tbody = document.getElementById('results');
+
+      status.textContent = 'Running...';
+      tbody.innerHTML = '';
+
+      // setTimeout so the UI updates before the blocking wasm call
+      setTimeout(() => {
+        const start = performance.now();
+        const hits = run_sim(40, numSims);
+        const ms = (performance.now() - start).toFixed(0);
+
+        let bestIdx = 0;
+        for (let i = 1; i < hits.length; i++) {
+          if (hits[i] > hits[bestIdx]) bestIdx = i;
+        }
+
+        for (let i = 0; i < hits.length; i++) {
+          const pct = (hits[i] / numSims * 100).toFixed(2);
+          const row = document.createElement('tr');
+          if (i === bestIdx) row.className = 'best';
+          row.innerHTML = `<td>${i + 1}</td><td>${pct}%</td>`;
+          tbody.appendChild(row);
+        }
+
+        status.textContent = `Done in ${ms}ms`;
+      }, 10);
+    });
+  </script>
+</body>
+</html>
