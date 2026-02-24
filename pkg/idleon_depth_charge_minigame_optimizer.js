@@ -1,12 +1,22 @@
 /* @ts-self-types="./idleon_depth_charge_minigame_optimizer.d.ts" */
 
 /**
- * @param {number} target
  * @param {number} num_sims
+ * @param {number} boss_health
+ * @param {number} base_damage
+ * @param {number} _lives
+ * @param {number} _bombs
+ * @param {number} max_tile
+ * @param {number} qty3
+ * @param {number} cards
+ * @param {number} _boom_blockers
+ * @param {number} _golden_tiles
+ * @param {number} big_hit_combo
+ * @param {number} final_round_fury
  * @returns {Int32Array}
  */
-export function run_sim(target, num_sims) {
-    const ret = wasm.run_sim(target, num_sims);
+export function run_sim(num_sims, boss_health, base_damage, _lives, _bombs, max_tile, qty3, cards, _boom_blockers, _golden_tiles, big_hit_combo, final_round_fury) {
+    const ret = wasm.run_sim(num_sims, boss_health, base_damage, _lives, _bombs, max_tile, qty3, cards, _boom_blockers, _golden_tiles, big_hit_combo, final_round_fury);
     var v1 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v1;

@@ -1,13 +1,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export function run_sim(target: number, num_sims: number): Int32Array;
+export function run_sim(num_sims: number, boss_health: number, base_damage: number, _lives: number, _bombs: number, max_tile: number, qty3: number, cards: number, _boom_blockers: number, _golden_tiles: number, big_hit_combo: number, final_round_fury: number): Int32Array;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly run_sim: (a: number, b: number) => [number, number];
+    readonly run_sim: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number];
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;

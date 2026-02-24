@@ -9,16 +9,15 @@ pub fn run_sim(
     _lives: i32, 
     _bombs: i32,
     max_tile: i32,
-    bettah_mult: f32,
+    qty3: f32,
     cards: i32,
     _boom_blockers: i32,
     _golden_tiles: i32,
     big_hit_combo: f32,
     final_round_fury: f32,
 ) -> Vec<i32> {
-    let target = boss_health / base_damage;
+    let target = (boss_health + base_damage - 1) / base_damage;
     let qty1: f32 = (max_tile - 1) as f32;
-    let qty3: f32 = ((bettah_mult - 1.0) * 100.0).round();
     let base_value: f32 = 12.0_f32.min(qty3 / 150.0);
     let p_up: f32 = 0.14 + (0.06_f32).min(qty3 / 2000.0) + (0.5_f32).min(0.5 * qty3 / (qty3 + 1500.0));
     (1..=(cards-_bombs)).into_iter().map(|flip| {
