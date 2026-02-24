@@ -45,6 +45,9 @@
           <span class="text-gray-500 font-semibold">Base Damage</span>
           <span class="font-mono font-bold" id="base-damage-value">1</span>
         </div>
+        <label class="flex flex-col text-xs text-gray-500 font-semibold col-span-2">Base Damage Override
+          <input class="text-sm text-black mt-1" id="base-damage-override" type="number" value="" placeholder="Leave empty to use calculated">
+        </label>
       </div>
 
       <!-- Results table -->
@@ -112,7 +115,7 @@
       return {
         numSims: parseInt(document.getElementById('sims').value) || 10000,
         bossHp: parseInt(document.getElementById('boss-hp').value) || 50,
-        baseDamage: calcBaseDamage(),
+        baseDamage: parseInt(document.getElementById('base-damage-override').value) || calcBaseDamage(),
         bombs: parseInt(document.getElementById('bombs').value) || 3,
         tiles: parseInt(document.getElementById('tiles').value) || 12,
         lives: 3 + lv('Extra_Lives') * getUpgrade('Extra_Lives')[4],
