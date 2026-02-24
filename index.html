@@ -157,18 +157,40 @@
       };
     }
 
+    // localStorage persistence
+    const STORAGE_KEY = 'depth-charge-settings';
+    function saveAll() {
+      const data = {};
+      UPGRADES.forEach(([, name]) => { data[idFor(name)] = lv(name); });
+      ['sims', 'boss-hp', 'bombs', 'tiles', 'base-damage-override'].forEach(id => {
+        data[id] = document.getElementById(id).value;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+    function loadAll() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+    }
+    const saved = loadAll();
+
+    // Restore config inputs
+    ['sims', 'boss-hp', 'bombs', 'tiles', 'base-damage-override'].forEach(id => {
+      if (saved[id] !== undefined && saved[id] !== '') document.getElementById(id).value = saved[id];
+      document.getElementById(id).addEventListener('input', saveAll);
+    });
+
     const tbody = document.getElementById('upg-tbody');
     UPGRADES.forEach(([origIdx, name, maxLevel, costScaling, bonusPerLevel]) => {
       const id = name.toLowerCase().replace(/_/g, '-');
       const label = name.replace(/_/g, ' ');
       const maxStr = maxLevel >= 9999 ? '\u221E' : maxLevel;
+      const initLvl = saved[id] || 0;
       const tr = document.createElement('tr');
       tr.className = 'border-b border-gray-100';
       tr.innerHTML = `
         <td class="px-3 py-2">${label}</td>
-        <td class="px-3 py-2"><input class="w-16 text-right" id="${id}" type="number" value="0" min="0" max="${maxLevel}"><span class="text-xs text-gray-400 ml-1">/${maxStr}</span></td>
-        <td class="text-right px-3 py-2 font-mono" id="${id}-value">${displayValue(name, 0, bonusPerLevel)}</td>
-        <td class="text-right px-3 py-2 font-mono text-gray-500" id="${id}-cost">${formatCost(upgradeCost(origIdx, costScaling, 0))}</td>
+        <td class="px-3 py-2"><input class="w-16 text-right" id="${id}" type="number" value="${initLvl}" min="0" max="${maxLevel}"><span class="text-xs text-gray-400 ml-1">/${maxStr}</span></td>
+        <td class="text-right px-3 py-2 font-mono" id="${id}-value">${displayValue(name, initLvl, bonusPerLevel)}</td>
+        <td class="text-right px-3 py-2 font-mono text-gray-500" id="${id}-cost">${formatCost(upgradeCost(origIdx, costScaling, initLvl))}</td>
         <td class="px-3 py-2" id="${id}-eff"></td>
       `;
       const input = tr.querySelector('input');
@@ -177,9 +199,11 @@
         document.getElementById(`${id}-value`).textContent = displayValue(name, lvl, bonusPerLevel);
         document.getElementById(`${id}-cost`).textContent = formatCost(upgradeCost(origIdx, costScaling, lvl));
         document.getElementById('base-damage-value').textContent = calcBaseDamage();
+        saveAll();
       });
       tbody.appendChild(tr);
     });
+    document.getElementById('base-damage-value').textContent = calcBaseDamage();
   </script>
 
   <script type="module">
