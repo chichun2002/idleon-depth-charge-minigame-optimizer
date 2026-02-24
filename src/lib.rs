@@ -1,46 +1,40 @@
 use rand::RngExt;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-const MAX_TILE: i32 = 3;
-const BETTAH_MULT: f32 = 2.7;
-const SIZE: i32 = 16;
-const BOMBS: i32 = 4;
-const LIVES: i32 = 3;
-
-const OPPONENT_HP: i32 = 1000;
-const DAMAGE: i32 = 25;
-
-const QTY1: f32 = (MAX_TILE - 1) as f32;
-const QTY3: f32 = ((BETTAH_MULT - 1.0) * 100.0).round();
-const TARGET: i32 = OPPONENT_HP / DAMAGE;
-
-
-const BOOM_BLOCKER: i32 = 2;
-const GOLDEN_TILES: i32 = 2;
-const BIG_HIT_COMBO: f32 = 0.10;
-const FINAL_ROUND_FURY: f32 = 2.0;
-
-const SAFE_TILES: i32 = SIZE - BOMBS;
-
-const P_UP: f32 = 0.14 + (0.06_f32).min(QTY3 / 2000.0) + (0.5_f32).min(0.5 * QTY3 / (QTY3 + 1500.0));
-const BASE: f32 = 12.0_f32.min(QTY3 / 150.0);
-
 #[wasm_bindgen]
-pub fn run_sim(target: i32, num_sims: i32) -> Vec<i32> {
-    (1..=SAFE_TILES).into_iter().map(|flip| {
+pub fn run_sim(
+    num_sims: i32, 
+    boss_health: i32, 
+    base_damage: i32, 
+    _lives: i32, 
+    _bombs: i32,
+    max_tile: i32,
+    bettah_mult: f32,
+    cards: i32,
+    _boom_blockers: i32,
+    _golden_tiles: i32,
+    big_hit_combo: f32,
+    final_round_fury: f32,
+) -> Vec<i32> {
+    let target = boss_health / base_damage;
+    let qty1: f32 = (max_tile - 1) as f32;
+    let qty3: f32 = ((bettah_mult - 1.0) * 100.0).round();
+    let base_value: f32 = 12.0_f32.min(qty3 / 150.0);
+    let p_up: f32 = 0.14 + (0.06_f32).min(qty3 / 2000.0) + (0.5_f32).min(0.5 * qty3 / (qty3 + 1500.0));
+    (1..=(cards-_bombs)).into_iter().map(|flip| {
         let mut rng = rand::rng();
         let mut successes = 0;
         
         for _ in 0..num_sims {
-            let mut lives = LIVES;
+            let mut lives = _lives;
             let mut score = 0;
-            let mut golden_tiles = GOLDEN_TILES;
-            let mut boom_blockers = BOOM_BLOCKER;
+            let mut golden_tiles = _golden_tiles;
+            let mut boom_blockers = _boom_blockers;
 
             while lives > 0 {
                 let mut alive = true;
-                let mut pool = SIZE;
-                let mut bombs = BOMBS;
+                let mut pool = cards;
+                let mut bombs = _bombs;
                 
                 for _ in 0..flip {
                     if golden_tiles > 0 {
@@ -65,19 +59,19 @@ pub fn run_sim(target: i32, num_sims: i32) -> Vec<i32> {
                     let mut round_score: f32 = 0.0;
                     for _f in 0..flip {
                         let random = rng.random::<f32>();
-                        let mut val = (1.0 + (BASE + random ).min(QTY1)).floor() as i32;
-                        while rng.random::<f32>() <= P_UP {
+                        let mut val = (1.0 + (base_value + random).min(qty1)).floor() as i32;
+                        while rng.random::<f32>() <= p_up {
                             val += 1;
-                            if val >= MAX_TILE {
+                            if val >= max_tile {
                                 break
                             }
                         }
                         round_score += val as f32
                     }
 
-                    round_score *= 1.0 + (BIG_HIT_COMBO * flip as f32);
+                    round_score *= 1.0 + (big_hit_combo * flip as f32);
                     if lives == 1 {
-                        round_score *= FINAL_ROUND_FURY
+                        round_score *= final_round_fury
                     }
                     score += round_score as i32;
                     if score >= target {
