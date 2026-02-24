@@ -18,10 +18,12 @@
           <th class="text-left px-3 py-2">Lv</th>
           <th class="text-right px-3 py-2">Value</th>
           <th class="text-right px-3 py-2">Cost</th>
+          <th class="text-left px-3 py-2 w-40">Efficiency</th>
         </tr></thead>
         <tbody id="upg-tbody"></tbody>
       </table>
       <button id="run" class="mt-4 w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg py-3 rounded-lg">Run Simulation</button>
+      <button id="optimize" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg py-3 rounded-lg">Optimize Next Upgrade</button>
       <pre id="debug" class="text-xs mt-2"></pre>
     </div>
 
@@ -121,27 +123,37 @@
       return parseInt(document.getElementById(idFor(name)).value) || 0;
     }
 
+    function lvOr(name, overrides) {
+      return overrides && name in overrides ? overrides[name] : lv(name);
+    }
+
     function calcBaseDamage() {
-      const bd1 = lv('Base_Damage_I') * getUpgrade('Base_Damage_I')[4];
-      const bd2 = lv('Base_Damage_II') * getUpgrade('Base_Damage_II')[4];
-      const mega1 = 1 + (lv('Mega_Damage_I') * getUpgrade('Mega_Damage_I')[4]) / 100;
+      return calcBaseDamageWith({});
+    }
+
+    function calcBaseDamageWith(overrides) {
+      const bd1 = lvOr('Base_Damage_I', overrides) * getUpgrade('Base_Damage_I')[4];
+      const bd2 = lvOr('Base_Damage_II', overrides) * getUpgrade('Base_Damage_II')[4];
+      const mega1 = 1 + (lvOr('Mega_Damage_I', overrides) * getUpgrade('Mega_Damage_I')[4]) / 100;
       return Math.floor((1 + bd1 + bd2) * mega1);
     }
 
-    function getSimParams() {
+    function getSimParams(overrides) {
+      const bdOverride = parseInt(document.getElementById('base-damage-override').value);
+      const ov = overrides || {};
       return {
         numSims: parseInt(document.getElementById('sims').value) || 10000,
         bossHp: parseInt(document.getElementById('boss-hp').value) || 50,
-        baseDamage: parseInt(document.getElementById('base-damage-override').value) || calcBaseDamage(),
+        baseDamage: bdOverride ? bdOverride : calcBaseDamageWith(ov),
         bombs: parseInt(document.getElementById('bombs').value) || 3,
         tiles: parseInt(document.getElementById('tiles').value) || 12,
-        lives: 3 + lv('Extra_Lives') * getUpgrade('Extra_Lives')[4],
-        maxTile: 1 + lv('Numbahs') * getUpgrade('Numbahs')[4],
-        bettahQty3: lv('Bettah_Numbahs') * getUpgrade('Bettah_Numbahs')[4],
-        goldenTiles: lv('Golden_Tiles') * getUpgrade('Golden_Tiles')[4],
-        bigHitCombo: lv('Big_Hit_Combos') * getUpgrade('Big_Hit_Combos')[4] / 100,
-        boomBlockers: lv('Boom_Blocker') * getUpgrade('Boom_Blocker')[4],
-        finalRoundFury: 1 + lv('Final_Round_Fury') * getUpgrade('Final_Round_Fury')[4] / 100,
+        lives: 3 + lvOr('Extra_Lives', ov) * getUpgrade('Extra_Lives')[4],
+        maxTile: 1 + lvOr('Numbahs', ov) * getUpgrade('Numbahs')[4],
+        bettahQty3: lvOr('Bettah_Numbahs', ov) * getUpgrade('Bettah_Numbahs')[4],
+        goldenTiles: lvOr('Golden_Tiles', ov) * getUpgrade('Golden_Tiles')[4],
+        bigHitCombo: lvOr('Big_Hit_Combos', ov) * getUpgrade('Big_Hit_Combos')[4] / 100,
+        boomBlockers: lvOr('Boom_Blocker', ov) * getUpgrade('Boom_Blocker')[4],
+        finalRoundFury: 1 + lvOr('Final_Round_Fury', ov) * getUpgrade('Final_Round_Fury')[4] / 100,
       };
     }
 
@@ -157,6 +169,7 @@
         <td class="px-3 py-2"><input class="w-16 text-right" id="${id}" type="number" value="0" min="0" max="${maxLevel}"><span class="text-xs text-gray-400 ml-1">/${maxStr}</span></td>
         <td class="text-right px-3 py-2 font-mono" id="${id}-value">${displayValue(name, 0, bonusPerLevel)}</td>
         <td class="text-right px-3 py-2 font-mono text-gray-500" id="${id}-cost">${formatCost(upgradeCost(origIdx, costScaling, 0))}</td>
+        <td class="px-3 py-2" id="${id}-eff"></td>
       `;
       const input = tr.querySelector('input');
       input.addEventListener('input', () => {
@@ -173,6 +186,15 @@
     import init, { run_sim } from './pkg/idleon_depth_charge_minigame_optimizer.js';
 
     await init();
+
+    function getBestWinRate(p) {
+      const hits = run_sim(p.numSims, p.bossHp, p.baseDamage, p.lives, p.bombs, p.maxTile, p.bettahQty3, p.tiles, p.boomBlockers, p.goldenTiles, p.bigHitCombo, p.finalRoundFury);
+      let bestIdx = 0;
+      for (let i = 1; i < hits.length; i++) {
+        if (hits[i] > hits[bestIdx]) bestIdx = i;
+      }
+      return hits[bestIdx] / p.numSims * 100;
+    }
 
     document.getElementById('run').addEventListener('click', () => {
       const status = document.getElementById('status');
@@ -214,6 +236,111 @@
         status.textContent = `Done in ${ms}ms`;
       }, 10);
     });
+
+    document.getElementById('optimize').addEventListener('click', () => {
+      const btn = document.getElementById('optimize');
+      const hasBdOverride = !!parseInt(document.getElementById('base-damage-override').value);
+      const BD_UPGRADES = ['Base_Damage_I', 'Base_Damage_II', 'Mega_Damage_I'];
+
+      // Clear existing efficiency cells
+      UPGRADES.forEach(([, name]) => {
+        document.getElementById(idFor(name) + '-eff').innerHTML = '';
+      });
+
+      // Count non-skipped upgrades for progress
+      const eligible = UPGRADES.filter(([, name, maxLevel]) => {
+        const cur = lv(name);
+        if (cur >= maxLevel) return false;
+        if (hasBdOverride && BD_UPGRADES.includes(name)) return false;
+        return true;
+      });
+      const total = eligible.length + 1;
+      let done = 0;
+
+      btn.disabled = true;
+      btn.textContent = `Analyzing... 0/${total}`;
+
+      setTimeout(() => {
+        const numSims = Math.max(100, Math.floor((parseInt(document.getElementById('sims').value) || 10000) / 10));
+        const baseParams = getSimParams();
+        baseParams.numSims = numSims;
+
+        const baseline = getBestWinRate(baseParams);
+        done++;
+        btn.textContent = `Analyzing... ${done}/${total}`;
+
+        const results = [];
+
+        function processNext(i) {
+          if (i >= UPGRADES.length) {
+            renderEfficiency(results);
+            btn.disabled = false;
+            btn.textContent = 'Optimize Next Upgrade';
+            return;
+          }
+
+          const [origIdx, name, maxLevel, costScaling] = UPGRADES[i];
+          const cur = lv(name);
+          const cell = document.getElementById(idFor(name) + '-eff');
+
+          if (cur >= maxLevel) {
+            cell.innerHTML = '<span class="text-gray-400 text-xs">-</span>';
+            setTimeout(() => processNext(i + 1), 0);
+            return;
+          }
+
+          if (hasBdOverride && BD_UPGRADES.includes(name)) {
+            cell.innerHTML = '<span class="text-gray-400 text-xs">-</span>';
+            setTimeout(() => processNext(i + 1), 0);
+            return;
+          }
+
+          setTimeout(() => {
+            const overrideParams = getSimParams({ [name]: cur + 1 });
+            overrideParams.numSims = numSims;
+            const newRate = getBestWinRate(overrideParams);
+            const delta = newRate - baseline;
+            const cost = upgradeCost(origIdx, costScaling, cur);
+            const efficiency = cost > 0 ? delta / cost : 0;
+
+            results.push({ name, delta, cost, efficiency });
+            done++;
+            btn.textContent = `Analyzing... ${done}/${total}`;
+
+            processNext(i + 1);
+          }, 0);
+        }
+
+        setTimeout(() => processNext(0), 0);
+      }, 10);
+    });
+
+    function renderEfficiency(results) {
+      let maxEff = 0;
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].efficiency > maxEff) maxEff = results[i].efficiency;
+      }
+
+      results.forEach(({ name, delta, efficiency }) => {
+        const cell = document.getElementById(idFor(name) + '-eff');
+        if (delta <= 0 || efficiency <= 0) {
+          cell.innerHTML = '<span class="text-gray-400 text-xs">+0%</span>';
+          return;
+        }
+
+        const isBest = maxEff > 0 && efficiency === maxEff;
+        const barWidth = maxEff > 0 ? (efficiency / maxEff * 100).toFixed(1) : 0;
+        const barColor = isBest ? 'bg-emerald-500' : 'bg-blue-400';
+        const deltaStr = delta < 0.01 ? '+<0.01%' : `+${delta.toFixed(2)}%`;
+
+        cell.innerHTML = `
+          <div class="flex items-center gap-1">
+            <div class="bg-gray-200 rounded h-4 flex-1"><div class="h-full rounded ${barColor}" style="width:${barWidth}%"></div></div>
+            <span class="text-xs font-mono whitespace-nowrap ${isBest ? 'text-emerald-600 font-bold' : 'text-gray-600'}">${deltaStr}</span>
+          </div>
+        `;
+      });
+    }
   </script>
 </body>
 </html>
