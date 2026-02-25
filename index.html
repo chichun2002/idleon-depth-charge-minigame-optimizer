@@ -211,13 +211,13 @@
 
     await init();
 
-    function getBestWinRate(p) {
+    function getAverageWinRate(p) {
       const hits = run_sim(p.numSims, p.bossHp, p.baseDamage, p.lives, p.bombs, p.maxTile, p.bettahQty3, p.tiles, p.boomBlockers, p.goldenTiles, p.bigHitCombo, p.finalRoundFury);
-      let bestIdx = 0;
-      for (let i = 1; i < hits.length; i++) {
-        if (hits[i] > hits[bestIdx]) bestIdx = i;
+      let sum = 0;
+      for (let i = 0; i < hits.length; i++) {
+        sum += hits[i];
       }
-      return hits[bestIdx] / p.numSims * 100;
+      return sum / hits.length / p.numSims * 100;
     }
 
     document.getElementById('run').addEventListener('click', () => {
@@ -289,7 +289,7 @@
         const baseParams = getSimParams();
         baseParams.numSims = numSims;
 
-        const baseline = getBestWinRate(baseParams);
+        const baseline = getAverageWinRate(baseParams);
         done++;
         btn.textContent = `Analyzing... ${done}/${total}`;
 
@@ -322,7 +322,7 @@
           setTimeout(() => {
             const overrideParams = getSimParams({ [name]: cur + 1 });
             overrideParams.numSims = numSims;
-            const newRate = getBestWinRate(overrideParams);
+            const newRate = getAverageWinRate(overrideParams);
             const delta = newRate - baseline;
             const cost = upgradeCost(origIdx, costScaling, cur);
             const efficiency = cost > 0 ? delta / cost : 0;
