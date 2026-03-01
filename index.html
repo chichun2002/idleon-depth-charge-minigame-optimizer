@@ -40,9 +40,6 @@
         <label class="flex flex-col text-xs text-gray-500 font-semibold">Bombs
           <input class="text-sm text-black mt-1" id="bombs" type="number" value="3">
         </label>
-        <label class="flex flex-col text-xs text-gray-500 font-semibold">Tiles
-          <input class="text-sm text-black mt-1" id="tiles" type="number" value="12">
-        </label>
         <div class="col-span-2 flex justify-between items-center text-sm">
           <span class="text-gray-500 font-semibold">Base Damage</span>
           <span class="font-mono font-bold" id="base-damage-value">1</span>
@@ -72,6 +69,7 @@
     const UPGRADES = [
       [0,  'Base_Damage_I',    9999, 1.10, 1,  0, 'Boosts_your_base_damage_by_+{'],
       [1,  'Numbahs',            17, 6,    1,  0, 'Increase_max_Tile_Number_to_$!'],
+      [2,  `Grid Expansion`,     16, 7.5,  1,  0, ''],
       [3,  'Bettah_Numbahs',   9999, 1.15, 10, 0, 'Boosts_odds_of_bigger_Tile_Numbers_by_}x'],
       [4,  'Mega_Damage_I',    9999, 1.12, 5,  0, 'Increases_all_damage_by_+{%'],
       [6,  'Extra_Lives',         7, 250,  1,  0, 'Start_each_game_with_+1_extra_life!'],
@@ -82,11 +80,14 @@
       [11, 'Final_Round_Fury', 9999, 1.30, 2,  0, 'Your_damage_is_}x_higher_on_last_life!'],
     ];
 
+    const GRID_SIZES = [9, 12, 15, 16, 18, 20, 24, 28, 30, 35, 40, 45, 50, 56, 60, 66, 72]
+
     function displayValue(name, lvl, bonusPerLevel) {
       const val = lvl * bonusPerLevel;
       switch (name) {
         case 'Numbahs':         return 'max ' + (1 + lvl);
         case 'Bettah_Numbahs':  return (lvl / 10 + 1).toFixed(1) + 'x';
+        case 'Grid Expansion':  return GRID_SIZES[lvl];
         case 'Extra_Lives':     return '+' + val;
         case 'Base_Damage_I':
         case 'Base_Damage_II':  return '+' + val;
@@ -146,7 +147,7 @@
         bossHp: parseInt(document.getElementById('boss-hp').value) || 50,
         baseDamage: bdOverride ? bdOverride : calcBaseDamageWith(ov),
         bombs: parseInt(document.getElementById('bombs').value) || 3,
-        tiles: parseInt(document.getElementById('tiles').value) || 12,
+        tiles: GRID_SIZES[lvOr('Grid Expansion', ov)] || 9,
         lives: 3 + lvOr('Extra_Lives', ov) * getUpgrade('Extra_Lives')[4],
         maxTile: 1 + lvOr('Numbahs', ov) * getUpgrade('Numbahs')[4],
         bettahQty3: lvOr('Bettah_Numbahs', ov) * getUpgrade('Bettah_Numbahs')[4],
@@ -162,7 +163,7 @@
     function saveAll() {
       const data = {};
       UPGRADES.forEach(([, name]) => { data[idFor(name)] = lv(name); });
-      ['sims', 'boss-hp', 'bombs', 'tiles', 'base-damage-override'].forEach(id => {
+      ['sims', 'boss-hp', 'bombs', 'base-damage-override'].forEach(id => {
         data[id] = document.getElementById(id).value;
       });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -173,7 +174,7 @@
     const saved = loadAll();
 
     // Restore config inputs
-    ['sims', 'boss-hp', 'bombs', 'tiles', 'base-damage-override'].forEach(id => {
+    ['sims', 'boss-hp', 'bombs', 'base-damage-override'].forEach(id => {
       if (saved[id] !== undefined && saved[id] !== '') document.getElementById(id).value = saved[id];
       document.getElementById(id).addEventListener('input', saveAll);
     });
